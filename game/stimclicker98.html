@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stimulation Clicker 98</title>
+<style>
+  :root{ --bg:#c0c0c0; --win:#d4d0c8; --dark:#404040; --light:#fff; --mid:#808080; --text:#111 }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.35 "MS Sans Serif",Tahoma,Verdana,Arial,sans-serif}
+  .window{max-width:960px;margin:12px auto;background:var(--win);border:2px solid var(--dark);
+    border-right-color:var(--light);border-bottom-color:var(--light);box-shadow:0 0 0 1px var(--mid) inset}
+  .title{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;color:#fff;background:linear-gradient(#000080,#1084d0)}
+  .bar{display:flex;gap:8px;padding:6px;border-top:1px solid var(--light);border-bottom:1px solid var(--mid);background:linear-gradient(#efefef,#e3e3e3)}
+  .btn{padding:4px 10px;background:var(--win);border:2px solid var(--light);border-right-color:var(--dark);border-bottom-color:var(--dark);cursor:pointer;text-decoration:none;color:inherit}
+  .btn:active{border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light)}
+  .wrap{display:grid;grid-template-columns:320px 1fr;gap:10px;padding:10px}
+  .store{border:1px solid var(--mid);background:#eee;box-shadow:inset -1px -1px 0 var(--light), inset 1px 1px 0 var(--dark);padding:8px}
+  .store h3{margin:0 0 6px}
+  .item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--mid);background:#f6f4ef;padding:6px;margin-bottom:6px}
+  .stage{position:relative;border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);background:#f3f1ec;min-height:420px;overflow:hidden}
+  .score{font-weight:700}
+  .clicker{display:flex;gap:8px;align-items:center}
+  .dvd{position:absolute;width:90px;height:50px;border:2px solid #000;background:#fff;display:grid;place-items:center;font-weight:700}
+  .marq{position:absolute;left:0;right:0;top:0;height:18px;background:#000;color:#0f0;white-space:nowrap;overflow:hidden}
+  .marq > div{position:absolute;will-change:transform}
+  .popup{position:absolute;bottom:6px;right:6px;background:#fff;border:1px solid var(--mid);padding:4px 6px}
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title"><b>Stimulation Clicker — Retro '98</b></div>
+    <div class="bar">
+      <div class="clicker">
+        <button id="click" class="btn">СТИМУЛИРОВАТЬ</button>
+        <span>Стимулов: <span id="score" class="score">0</span></span>
+        <span style="margin-left:12px">/сек: <span id="rate">0</span></span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button id="mute" class="btn">Звук: выкл</button>
+        <button id="panic" class="btn">Паника (скрыть всё)</button>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="store">
+        <h3>Магазин отвлекашек</h3>
+        <div id="items"></div>
+      </div>
+      <div id="stage" class="stage">
+        <div class="popup">Добро пожаловать! Кликни по кнопке, покупай «отвлекашки» — экран превратится в цирк.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const stage = $('#stage');
+  const scoreEl = $('#score'); const rateEl = $('#rate');
+  const clickBtn = $('#click'); const muteBtn = $('#mute'); const panicBtn = $('#panic');
+  const itemsEl = $('#items');
+
+  let score = 0;
+  let rate = 0; // пассивный прирост в сек.
+  let last = performance.now();
+  let soundOn = false;
+
+  const ding = new Audio(); // заглушка
+
+  const items = [
+    { id:'dvd', name:'DVD-логотип', desc:'+0.8/с, отскакивает по экрану', cost:15, dps:0.8, bought:0,
+      onBuy(){
+        const box = document.createElement('div');
+        box.className='dvd'; box.textContent='DVD';
+        let x=40+Math.random()*(stage.clientWidth-120), y=40+Math.random()*(stage.clientHeight-90);
+        let vx=2+Math.random()*2, vy=1.5+Math.random()*2;
+        stage.appendChild(box);
+        function move(){
+          x+=vx; y+=vy;
+          if(x<0||x>stage.clientWidth-90) vx*=-1;
+          if(y<0||y>stage.clientHeight-50) vy*=-1;
+          box.style.transform=`translate(${x}px,${y}px)`;
+          box._raf = requestAnimationFrame(move);
+        }
+        move();
+        box.onclick=()=>{ score+=2; ping('+2'); };
+      }
+    },
+    { id:'marq', name:'Бегущая строка', desc:'+1.5/с, зелёный текст сверху', cost:30, dps:1.5, bought:0,
+      onBuy(){
+        const m = document.createElement('div'); m.className='marq';
+        const inner = document.createElement('div'); inner.textContent='/// ПОКУПАЙ ЕЩЁ ОТВЛЕКАШКИ /// БОЛЬШЕ СТИМУЛОВ /// ПОДКАСТ НА КАССЕТЕ /// VHS >>';
+        m.appendChild(inner); stage.appendChild(m);
+        let x = stage.clientWidth;
+        function loop(){
+          x -= 1.5;
+          if(x < -inner.offsetWidth) x = stage.clientWidth;
+          inner.style.transform=`translateX(${x}px)`; m._raf = requestAnimationFrame(loop);
+        } loop();
+      }
+    },
+    { id:'bubs', name:'Popup «Новости»', desc:'+3/с, периодически всплывает', cost:60, dps:3, bought:0,
+      onBuy(){
+        function spawn(){
+          const p = document.createElement('div'); p.className='popup';
+          p.textContent = 'СРОЧНО: учёные доказали, что клик — полезен';
+          p.style.left = (6+Math.random()*(stage.clientWidth-220))+'px';
+          p.style.top = (24+Math.random()*(stage.clientHeight-60))+'px';
+          p.onclick = ()=>{ score += 5; ping('+5'); p.remove(); }
+          stage.appendChild(p);
+          setTimeout(()=>p.remove(), 5000);
+        }
+        spawn(); setInterval(spawn, 7000);
+      }
+    },
+    { id:'shake', name:'Дрожание окна', desc:'+5/с, слегка шатает сцену', cost:120, dps:5, bought:0,
+      onBuy(){
+        let t=0; function loop(){ t+=0.08; stage.style.transform=`translate(${Math.sin(t)*2}px,${Math.cos(t)*1.5}px)`; requestAnimationFrame(loop); } loop();
+      }
+    }
+  ];
+
+  function renderStore(){
+    itemsEl.innerHTML='';
+    items.forEach(it=>{
+      const row = document.createElement('div'); row.className='item';
+      const left = document.createElement('div'); left.innerHTML = `<b>${it.name}</b><div>${it.desc}</div>`;
+      const right = document.createElement('div');
+      const buy = document.createElement('button'); buy.className='btn';
+      buy.textContent = `Купить (${it.cost})`;
+      buy.onclick = ()=>tryBuy(it);
+      const cnt = document.createElement('div'); cnt.textContent = `x${it.bought}`;
+      right.style.display='grid'; right.style.gap='4px'; right.append(buy,cnt);
+      row.append(left,right); itemsEl.append(row);
+    });
+  }
+
+  function tryBuy(it){
+    if(score < it.cost) { ping('Не хватает стимулов'); return; }
+    score -= it.cost; it.bought++; rate += it.dps; it.cost = Math.ceil(it.cost * 1.45);
+    it.onBuy && it.onBuy(); renderStore(); updateHUD(); blip();
+  }
+
+  function updateHUD(){ scoreEl.textContent = Math.floor(score); rateEl.textContent = rate.toFixed(1); }
+  function tick(now){
+    const dt = Math.min(0.25,(now-last)/1000); last = now;
+    score += rate * dt; updateHUD(); requestAnimationFrame(tick);
+  }
+
+  function ping(msg){
+    const tip = document.createElement('div');
+    tip.style.position='absolute'; tip.style.right='8px'; tip.style.bottom='8px';
+    tip.style.background='#fff'; tip.style.border='1px solid #808080'; tip.style.padding='2px 6px';
+    tip.textContent = msg; stage.appendChild(tip); setTimeout(()=>tip.remove(), 700);
+  }
+  function blip(){ if(!soundOn) return; try{ ding.currentTime=0; ding.play(); }catch{} }
+
+  clickBtn.onclick = ()=>{ score++; updateHUD(); blip(); if(Math.random()<.2) ping('+1'); };
+  muteBtn.onclick = ()=>{ soundOn = !soundOn; muteBtn.textContent = 'Звук: ' + (soundOn?'вкл':'выкл'); };
+  panicBtn.onclick = ()=>{ stage.querySelectorAll('.dvd,.marq,.popup').forEach(n=>n.remove()); stage.style.transform='none'; ping('чисто!'); };
+
+  renderStore(); updateHUD(); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

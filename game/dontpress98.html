@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>НЕ НАЖИМАТЬ 98</title>
+<style>
+  :root{ --bg:#c0c0c0; --win:#d4d0c8; --dark:#404040; --mid:#808080; --light:#fff; --text:#111; --red:#800000; --blue:#000080; }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.35 "MS Sans Serif",Tahoma,Verdana,Arial,sans-serif}
+  .window{max-width:740px;margin:12px auto;background:var(--win);border:2px solid var(--dark);
+    border-right-color:var(--light);border-bottom-color:var(--light);box-shadow:0 0 0 1px var(--mid) inset}
+  .title{padding:3px 6px;color:#fff;background:linear-gradient(#800000,#a00000);display:flex;justify-content:space-between;align-items:center}
+  .bar{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:6px 8px;border-top:1px solid var(--light);border-bottom:1px solid var(--mid);background:linear-gradient(#efefef,#e3e3e3)}
+  .meters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .meter{position:relative;height:10px;background:#e5e5e5;border:1px solid var(--mid);box-shadow:inset -1px -1px 0 var(--light), inset 1px 1px 0 var(--dark)}
+  .meter>div{height:100%;width:0;background:linear-gradient(#b00000,#ff3b3b)}
+  .meter .lbl{position:absolute;left:6px;top:-18px;font-size:11px;color:#333}
+  .meter.heat>div{background:linear-gradient(#0048a6,#4aa3ff)}
+  .stat{display:flex;gap:12px;align-items:center;justify-self:end}
+  .btn{padding:6px 12px;background:#e9e6df;border:2px solid var(--light);border-right-color:var(--dark);border-bottom-color:var(--dark);cursor:pointer;font-weight:700}
+  .btn:active{border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light)}
+  .stage{position:relative;margin:8px;border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);background:#f3f1ec;height:440px;display:grid;place-items:center;overflow:hidden}
+  .danger{
+    padding:12px 20px;
+    transform: translate(-50%, -50%); /* anchor по центру */
+  }
+  .toast{position:absolute;top:8px;left:8px;background:#fff;border:1px solid var(--mid);padding:4px 6px}
+  .warn{position:absolute;right:8px;top:8px;background:#fff;border:1px solid var(--mid);padding:4px 6px}
+  .clone{position:absolute}
+  .marq{position:absolute;left:0;right:0;top:0;height:18px;background:#000;color:#ff0;white-space:nowrap;overflow:hidden;display:none;z-index:3}
+  .marq>div{position:absolute;will-change:transform}
+  .boss{position:absolute;inset:0;background:#fff;display:none;z-index:8}
+  .boss pre{margin:0;padding:8px;font:12px/1.3 "Courier New",monospace}
+  .invert{filter:invert(1) hue-rotate(180deg)}
+
+  /* анти-капча поверх кнопки */
+  .captcha{position:absolute;display:none;z-index:2;background:#fff;border:1px solid var(--mid);padding:4px 6px;font-weight:400}
+  .captcha label{display:flex;align-items:center;gap:6px;font-weight:400}
+
+  /* режим раскаяния (удержание) */
+  .atone{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;z-index:2;background:#fff;border:1px solid var(--mid);padding:6px}
+  .barHold{width:240px;height:10px;background:#eee;border:1px solid #bbb;margin-top:6px;box-shadow:inset -1px -1px 0 var(--light), inset 1px 1px 0 var(--dark)}
+  .barHold>div{height:100%;width:0;background:linear-gradient(#008000,#27c427)}
+
+  /* мерзкий диалог */
+  .dlg{position:absolute;left:50%;top:40px;transform:translateX(-50%);display:none;z-index:4;background:#fff;border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);min-width:280px;box-shadow:0 0 0 1px var(--mid) inset}
+  .dlg .h{padding:4px 6px;color:#fff;background:linear-gradient(#000080,#1084d0)}
+  .dlg .b{padding:10px}
+  .dlg .row{display:flex;gap:8px;justify-content:flex-end}
+  .dlg .row .btn{position:relative}
+
+  /* треснутое окно */
+  #crack{position:fixed;inset:0;pointer-events:none;display:none;z-index:50}
+  #crack svg{width:100%;height:100%}
+  .crackline{stroke:#00000099;stroke-width:1.2;stroke-linecap:round}
+  .crackpulse{animation:cp 900ms ease-out 1}
+  @keyframes cp{from{stroke-width:8;stroke:#000}to{stroke-width:1.2;stroke:#00000099}}
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title">
+      <b>НЕ НАЖИМАТЬ — серьёзно</b>
+      <span style="font-weight:400">Boss Key: <b>B</b></span>
+    </div>
+
+    <div class="bar">
+      <div class="meters">
+        <div class="meter" title="Уровень непослушания">
+          <div id="meter"></div>
+          <div class="lbl">Непослушание</div>
+        </div>
+        <div class="meter heat" title="Термометр самоконтроля">
+          <div id="heatbar"></div>
+          <div class="lbl">Самоконтроль</div>
+        </div>
+      </div>
+      <div class="stat">
+        <div>Клики: <b id="clicks">0</b></div>
+        <div>Рекорд: <b id="best">—</b></div>
+        <button id="reset" class="btn" title="Сброс прогресса">Сброс</button>
+      </div>
+    </div>
+
+    <div id="stage" class="stage">
+      <div id="marq" class="marq"><div>⚠ СРОЧНО: прекратите нажимать — последствия непредсказуемы ⚠ </div></div>
+
+      <button id="danger" class="btn danger">НЕ НАЖИМАТЬ</button>
+      <div id="toast" class="toast" hidden>Первое предупреждение…</div>
+
+      <!-- анти-капча поверх кнопки -->
+      <div id="captcha" class="captcha">
+        <label><input id="capCheck" type="checkbox"> Я обещаю не нажимать (5 сек)</label>
+      </div>
+
+      <!-- режим раскаяния -->
+      <div id="atone" class="atone">
+        <div><b>Удерживай, чтобы искупить вину</b></div>
+        <div class="barHold"><div id="atBar"></div></div>
+      </div>
+
+      <!-- мерзкий диалог -->
+      <div id="dlg" class="dlg" role="dialog" aria-modal="true" aria-label="Подтверждение">
+        <div class="h">Система — Важное</div>
+        <div class="b">
+          <div style="margin-bottom:8px">Вы уверены, что не уверены?</div>
+          <div class="row">
+            <button class="btn" id="dlgOk">OK</button>
+            <button class="btn" id="dlgMore">ЕЩЁ OK</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="boss" class="boss" aria-hidden="true">
+        <pre>┌────────────── Отчёт.xls ──────────────┐
+│ Год  │ Продажи │ Маркетинг │ Прибыль │
+│ 1996 │  124,3  │   11,2    │  19,4   │
+│ 1997 │  139,1  │   13,0    │  22,1   │
+│ 1998 │  141,0  │   12,4    │  23,8   │
+└────────────────────────────────────────┘
+Alt+B для настоящей работы…</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- треснувшее окно -->
+  <div id="crack">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <g id="crackGroup"></g>
+      <defs>
+        <radialGradient id="fog" cx="50%" cy="50%" r="70%">
+          <stop offset="60%" stop-color="rgba(255,255,255,0)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0.35)"/>
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="100" height="100" fill="url(#fog)"></rect>
+    </svg>
+  </div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const btn = document.getElementById('danger');
+  const toast = document.getElementById('toast');
+  const meter = document.getElementById('meter');
+  const heatbar = document.getElementById('heatbar');
+  const clicksEl = document.getElementById('clicks');
+  const bestEl = document.getElementById('best');
+  const resetBtn = document.getElementById('reset');
+  const marq = document.getElementById('marq');
+  const boss = document.getElementById('boss');
+  const captcha = document.getElementById('captcha');
+  const capCheck = document.getElementById('capCheck');
+  const atoneBox = document.getElementById('atone');
+  const atBar = document.getElementById('atBar');
+  const dlg = document.getElementById('dlg');
+  const dlgOk = document.getElementById('dlgOk');
+  const dlgMore = document.getElementById('dlgMore');
+  const crack = document.getElementById('crack');
+  const crackGroup = document.getElementById('crackGroup');
+
+  const LS_KEY = 'dontpress98_best';
+  let clicks = 0;
+  let best = null;
+
+  let evasive = false;
+  let dangerRect = null;
+  let marqAnim = null;
+
+  // самоконтроль
+  let heat = 0;             // 0..100
+  let lastMove = performance.now();
+  let coolTimer = null;
+
+  // анти-капча
+  let clicksLockedUntil = 0;
+
+  // буддийский финал
+  let spaceTimer = null, spaceTicks = 0;
+
+  // INIT
+  loadBest(); renderStats(); placeCenter(btn);
+  startCooling();
+
+  // Основной клик
+  btn.addEventListener('click', ()=>{
+    if(Date.now() < clicksLockedUntil){ warn('5 секунд без наказаний — помнишь?'); return; }
+    clicks++;
+    renderStats();
+    escalate(clicks);
+    if(clicks===100){ crackWindow(); }  // треск всего окна
+  });
+
+  // Ускользание от курсора — с корректным якорем по центру
+  stage.addEventListener('pointermove', (e)=>{
+    lastMove = performance.now();
+    heat = Math.min(100, heat+2);
+    updateHeat();
+
+    if(!evasive) return;
+
+    const sRect = stage.getBoundingClientRect();
+    const mx = e.clientX - sRect.left;
+    const my = e.clientY - sRect.top;
+
+    ensureDangerRect(); // узнаём текущий реальный bbox после трансформа
+    const halfW = dangerRect.width/2;
+    const halfH = dangerRect.height/2;
+
+    // текущий центр кнопки (bbox левый верх + половина размеров)
+    let cx = dangerRect.left + halfW;
+    let cy = dangerRect.top  + halfH;
+
+    const dx = cx - mx, dy = cy - my;
+    const d  = Math.hypot(dx,dy);
+
+    const baseRadius = 60 + Math.min(200, clicks*4);
+    if(d < baseRadius){
+      const k = (baseRadius - d) / baseRadius;
+      const step = 14 + k*26;
+
+      const pad = 6; // безопасный отступ от краёв
+      const nx = clamp(cx + (dx/(d||1))*step, halfW+pad, stage.clientWidth  - halfW - pad);
+      const ny = clamp(cy + (dy/(d||1))*step, halfH+pad, stage.clientHeight - halfH - pad);
+
+      // left/top теперь — координаты центра, благодаря transform: translate(-50%,-50%)
+      btn.style.left = nx + 'px';
+      btn.style.top  = ny + 'px';
+
+      ensureDangerRect(true);  // пересчитать после движения
+      followCaptcha();         // держим капчу прицепленной
+    }
+  }, {passive:true});
+
+  // Сброс
+  resetBtn.addEventListener('click', resetAll);
+
+  // Boss key (B)
+  window.addEventListener('keydown', (e)=>{
+    if(e.key.toLowerCase() === 'b'){
+      const show = boss.style.display !== 'block';
+      boss.style.display = show ? 'block' : 'none';
+    }
+  });
+
+  // Буддийский финал — удерживай пробел 5 секунд, не кликая
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space' && !spaceTimer){
+      spaceTimer = setInterval(()=>{
+        spaceTicks++;
+        if(spaceTicks>=50){ finale(true); clearInterval(spaceTimer); spaceTimer=null; spaceTicks=0; }
+      },100);
+    }
+  });
+  window.addEventListener('keyup', (e)=>{
+    if(e.code==='Space'){ clearInterval(spaceTimer); spaceTimer=null; spaceTicks=0; }
+  });
+
+  // ========= ЛОГИКА ЭСКАЛАЦИИ =========
+  function escalate(n){
+    showMeter(n);
+
+    if(n===1){ toast.hidden=false; toast.textContent='Первое предупреждение…'; }
+    if(n===2){ warn('Я серьёзно.'); }
+    if(n===3){ btn.textContent='НЕ НАЖИМАТЬ (ещё раз?)'; shake(); }
+    if(n===4){ spawnClones(2, true); warn('Теперь их двое.'); badDialog(); }       // клоны + диалог
+    if(n===5){ evasive = true; warn('Кнопка будет ускользать.'); }
+    if(n===6){ shake(18); atonement(); }                                           // режим раскаяния
+    if(n===8){ invertFlash(); warn('Система в опасности!'); }
+    if(n===10){ spawnClones(4, true); }
+    if(n===12){ startMarq(); }
+    if(n===13){ showCaptcha(); }                                                   // анти-капча
+    if(n===14){ rainOfButtons(12); }
+    if(n===16){ warn('Эксперимент признан неэтичным.'); }
+    if(n===18){ shake(26); invertFlash(1200); }
+    if(n===20){ finale(false); }
+
+    if(n>25){
+      if(n%5===0) spawnClones(2, true);
+      if(n%7===0) rainOfButtons(6);
+    }
+    saveBest();
+  }
+
+  function finale(buddhist){
+    endMarq();
+    confetti(40);
+    if(buddhist){
+      warn('Буддийский финал: ты победил, не нажимая.');
+      btn.textContent='Я держался';
+    } else {
+      warn('Ладно, ты победил.');
+      btn.textContent='ДОВОЛЕН?';
+    }
+  }
+
+  // ========= ТЕРМОМЕТР САМООКОНТРОЛЯ =========
+  function updateHeat(){
+    heatbar.style.width = Math.max(0, Math.min(100, Math.floor(heat)))+'%';
+  }
+  function startCooling(){
+    clearInterval(coolTimer);
+    coolTimer = setInterval(()=>{
+      if(performance.now()-lastMove > 250){
+        heat = Math.max(0, heat-2);
+        updateHeat();
+        if(heat===0 && clicks>0){
+          clicks = Math.max(0, clicks-3);
+          renderStats();
+          warn('Остыл. Минус 3 клика.');
+        }
+      }
+    },300);
+  }
+
+  // ========= РЕЖИМ РАСКАЯНИЯ =========
+  let atonementActive = false, atInt=null, atProg=0;
+  function atonement(seconds=4){
+    if(atonementActive) return;
+    atonementActive = true; atProg=0; atBar.style.width='0%';
+    atoneBox.style.display='block';
+
+    const holdStart = ()=>{ if(atInt) return;
+      atInt = setInterval(()=>{
+        atProg++; atBar.style.width = Math.min(100, (atProg/(seconds*10))*100) + '%';
+        if(atProg >= seconds*10){
+          clearInterval(atInt); atInt=null; atonementActive=false; atoneBox.style.display='none';
+          clicks = Math.max(0, clicks-5);
+          meter.style.width = Math.max(0, parseInt(meter.style.width||'0') - 10) + '%';
+          renderStats(); warn('Искупление принято: −5 кликов');
+        }
+      },100);
+    };
+    const holdStop = ()=>{ clearInterval(atInt); atInt=null; };
+    atoneBox.onpointerdown = holdStart;
+    atoneBox.onpointerup = atoneBox.onpointerleave = holdStop;
+    setTimeout(()=>{ if(atonementActive){ atonementActive=false; atoneBox.style.display='none'; } }, seconds*1500);
+  }
+
+  // ========= МЕРЗКИЙ ДИАЛОГ =========
+  function badDialog(){
+    dlg.style.display='block';
+    const nudge = (btnEl)=>{
+      btnEl.onpointermove = (e)=>{
+        const r = btnEl.getBoundingClientRect();
+        const dx = (e.clientX - r.left) - r.width/2;
+        const dy = (e.clientY - r.top)  - r.height/2;
+        const k = 6;
+        btnEl.style.transform = `translate(${dx>0?-k:k}px, ${dy>0?-k:k}px)`;
+      };
+      btnEl.onpointerleave = ()=> btnEl.style.transform='none';
+    };
+    nudge(dlgOk); nudge(dlgMore);
+    const close = ()=>{ dlg.style.display='none'; };
+    dlgOk.onclick = ()=>{ warn('Вы выбрали OK. Ничего не изменилось.'); close(); };
+    dlgMore.onclick = ()=>{ warn('Вы выбрали ЕЩЁ OK. Ещё хуже.'); shake(12); close(); };
+    setTimeout(()=> dlg.style.display='none', 6000);
+  }
+
+  // ========= АНТИ-КАПЧА =========
+  function showCaptcha(){
+    capCheck.checked = false;
+    positionCaptcha(); captcha.style.display='block';
+    const unlock = ()=>{
+      clicksLockedUntil = Date.now() + 5000;
+      warn('5 секунд — клики не считаются.');
+      setTimeout(()=>{ if(captcha.style.display==='block') captcha.style.display='none'; }, 400);
+    };
+    capCheck.onchange = ()=>{ if(capCheck.checked) unlock(); };
+    setTimeout(()=>{ captcha.style.display='none'; }, 8000);
+  }
+  function positionCaptcha(){
+    const s = stage.getBoundingClientRect();
+    const r = btn.getBoundingClientRect();
+    captcha.style.left = (r.left - s.left) + 'px';
+    captcha.style.top  = (r.top  - s.top - 36) + 'px';
+  }
+  function followCaptcha(){ if(captcha.style.display==='block') positionCaptcha(); }
+
+  // ========= КЛОНЫ С ТАЙМЕРОМ (прячут настоящую кнопку) =========
+  function spawnClones(n, hideReal){
+    if(hideReal){ btn.style.visibility='hidden'; }
+    let alive = 0;
+    for(let i=0;i<n;i++){
+      const b = btn.cloneNode(true);
+      b.className='btn clone';
+      b.textContent = Math.random()<0.5 ? 'НЕ НАЖИМАТЬ' : 'НЕ ТРОГАТЬ';
+      b.style.left = (20+Math.random()*(stage.clientWidth-180))+'px';
+      b.style.top  = (20+Math.random()*(stage.clientHeight-60))+'px';
+
+      // индикатор жизни
+      const life = document.createElement('div');
+      life.style.position='absolute'; life.style.left='4px'; life.style.right='4px'; life.style.bottom='-6px';
+      life.style.height='4px'; life.style.background='#eee'; life.style.border='1px solid #bbb';
+      const fill = document.createElement('div'); fill.style.height='100%'; fill.style.width='100%'; fill.style.background='#7cb342';
+      life.appendChild(fill); b.appendChild(life);
+
+      let aliveFlag = true; alive++;
+      const ttl = 2000 + Math.random()*1500;
+      const t0 = performance.now();
+      (function tick(){
+        const p = Math.min(1, (performance.now()-t0)/ttl);
+        fill.style.width = (100 - p*100) + '%';
+        if(p<1 && aliveFlag){ requestAnimationFrame(tick); }
+        else { b.remove(); aliveFlag=false; if(--alive===0 && hideReal){ btn.style.visibility='visible'; } }
+      })();
+
+      b.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(!aliveFlag) return; b.remove(); aliveFlag=false; if(--alive===0 && hideReal){ btn.style.visibility='visible'; } });
+      stage.appendChild(b);
+    }
+  }
+
+  function removeClones(){ stage.querySelectorAll('.clone').forEach(n=>n.remove()); btn.style.visibility='visible'; }
+
+  // ========= БЕГУЩАЯ СТРОКА =========
+  function startMarq(){
+    if(marq.style.display==='block') return;
+    marq.style.display='block';
+    const inner = marq.firstElementChild;
+    let x = stage.clientWidth;
+    cancelAnimationFrame(marqAnim);
+    (function loop(){
+      x -= 1.8;
+      if(x < -inner.offsetWidth) x = stage.clientWidth;
+      inner.style.transform = `translateX(${x}px)`;
+      marqAnim = requestAnimationFrame(loop);
+    })();
+  }
+  function endMarq(){
+    marq.style.display='none';
+    cancelAnimationFrame(marqAnim);
+  }
+
+  // ========= КНОПОЧНЫЙ ЛИВЕНЬ =========
+  function rainOfButtons(count=10){
+    for(let i=0;i<count;i++){
+      setTimeout(()=>{
+        const d=document.createElement('button');
+        d.className='btn clone';
+        d.textContent='НЕ НАЖИМАТЬ';
+        d.style.left = (Math.random()*(stage.clientWidth-160)+20)+'px';
+        d.style.top = '-40px';
+        stage.appendChild(d);
+        let y=-40, vy=2+Math.random()*2;
+        (function fall(){
+          y+=vy; d.style.top=y+'px';
+          if(y<stage.clientHeight-20) requestAnimationFrame(fall); else d.remove();
+        })();
+      }, i*90);
+    }
+  }
+
+  // ========= ЭФФЕКТЫ =========
+  function renderStats(){
+    clicksEl.textContent = clicks;
+    bestEl.textContent = best ? String(best) : '—';
+  }
+  function showMeter(n){ meter.style.width = Math.max(0, Math.min(100, Math.floor(n*4))) + '%'; }
+  function shake(n=16){
+    let t=0;
+    const id = setInterval(()=>{
+      t++;
+      stage.style.transform = `translate(${(t%2?-4:4)}px, ${(t%2?2:-2)}px)`;
+      if(t>=n){ clearInterval(id); stage.style.transform='none'; }
+    }, 24);
+  }
+  function invertFlash(ms=900){ stage.classList.add('invert'); setTimeout(()=> stage.classList.remove('invert'), ms); }
+  function warn(msg){
+    const el = document.createElement('div');
+    el.className = 'warn';
+    el.textContent = msg;
+    stage.appendChild(el);
+    setTimeout(()=>el.remove(), 1600);
+  }
+  function placeCenter(el){
+    const r = stage.getBoundingClientRect();
+    el.style.position='absolute';
+    el.style.left = (r.width/2) + 'px';
+    el.style.top  = (r.height/2) + 'px';
+    ensureDangerRect(true);
+    followCaptcha();
+  }
+  function ensureDangerRect(force){
+    if(!dangerRect || force){
+      const r = btn.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      dangerRect = { left:r.left - s.left, top:r.top - s.top, width:r.width, height:r.height };
+    }
+  }
+
+  // ========= ТРЕСК ОКНА НА 100-М КЛИКЕ =========
+  function crackWindow(){
+    crackGroup.innerHTML = '';
+    const rays = 18;
+    for(let i=0;i<rays;i++){
+      const ang = (360/rays)*i + Math.random()*6 - 3;
+      const len = 46 + Math.random()*38;
+      const x2 = 50 + len*Math.cos(ang*Math.PI/180);
+      const y2 = 50 + len*Math.sin(ang*Math.PI/180);
+      const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1','50'); l.setAttribute('y1','50');
+      l.setAttribute('x2', String(x2)); l.setAttribute('y2', String(y2));
+      l.setAttribute('class','crackline crackpulse');
+      crackGroup.appendChild(l);
+
+      const branches = 1 + (Math.random()*3)|0;
+      for(let b=0;b<branches;b++){
+        const frac = 0.3 + Math.random()*0.6;
+        const bx = 50 + (len*frac)*Math.cos(ang*Math.PI/180);
+        const by = 50 + (len*frac)*Math.sin(ang*Math.PI/180);
+        const a2 = ang + (Math.random()<0.5?-1:1)*(20+Math.random()*25);
+        const blen = 6 + Math.random()*14;
+        const bx2 = bx + blen*Math.cos(a2*Math.PI/180);
+        const by2 = by + blen*Math.sin(a2*Math.PI/180);
+        const l2 = document.createElementNS('http://www.w3.org/2000/svg','line');
+        l2.setAttribute('x1', String(bx)); l2.setAttribute('y1', String(by));
+        l2.setAttribute('x2', String(bx2)); l2.setAttribute('y2', String(by2));
+        l2.setAttribute('class','crackline crackpulse');
+        crackGroup.appendChild(l2);
+      }
+    }
+    crack.style.display='block';
+    shake(40); invertFlash(1500);
+    warn('100 кликов. Стекло не выдержало.');
+  }
+
+  // ========= УТИЛИТЫ =========
+  function confetti(n){
+    for(let i=0;i<n;i++){
+      const d=document.createElement('div');
+      d.style.position='absolute';
+      d.style.width=d.style.height= (6+Math.random()*6)+'px';
+      d.style.left = (Math.random()*(stage.clientWidth-20)+10)+'px';
+      d.style.top = '-10px';
+      d.style.background = '#'+Math.floor(Math.random()*0xFFFFFF).toString(16).padStart(6,'0');
+      d.style.opacity='0.9';
+      stage.appendChild(d);
+      const vy = 2+Math.random()*2, vx = -1+Math.random()*2; let rot = (Math.random()*360)|0;
+      let y=-10, x=parseFloat(d.style.left);
+      (function drop(){
+        y+=vy; x+=vx; rot+=6;
+        d.style.top = y+'px'; d.style.left=x+'px'; d.style.transform='rotate('+rot+'deg)';
+        if(y < stage.clientHeight+10) requestAnimationFrame(drop); else d.remove();
+      })();
+    }
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  // рекорд
+  function loadBest(){ try{ const raw = localStorage.getItem(LS_KEY); if(raw){ best = +raw || null; } }catch{} }
+  function saveBest(){
+    if(!best || clicks>best){
+      best = clicks;
+      try{ localStorage.setItem(LS_KEY, String(best)); }catch{}
+      renderStats();
+    }
+  }
+
+  // вспомогательные
+  function resetAll(){
+    clicks = 0; evasive=false; endMarq(); removeClones();
+    toast.hidden=true; btn.textContent='НЕ НАЖИМАТЬ';
+    meter.style.width='0%'; heat=0; updateHeat();
+    placeCenter(btn);
+    captcha.style.display='none'; atoneBox.style.display='none'; dlg.style.display='none';
+    crack.style.display='none';
+  }
+
+  // позиционирование оверлеев при ресайзе
+  window.addEventListener('resize', ()=>{
+    ensureDangerRect(true);
+    positionCaptcha();
+  });
+
+})();
+</script>
+</body>
+</html>

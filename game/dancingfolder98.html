@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пляшущая папка</title>
+<style>
+  :root{ --bg:#c0c0c0; --win:#d4d0c8; --dark:#404040; --mid:#808080; --light:#fff; --text:#111; }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.35 "MS Sans Serif",Tahoma,Verdana,Arial,sans-serif}
+  .window{max-width:760px;margin:12px auto;background:var(--win);
+    border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);box-shadow:0 0 0 1px var(--mid) inset}
+  .title{padding:3px 6px;color:#fff;background:linear-gradient(#000080,#1084d0)}
+  .stage{position:relative;margin:8px;border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);
+    background:#f3f1ec;height:460px;overflow:hidden}
+
+  /* папка */
+  .folder{position:absolute;width:120px;height:84px;background:#ffd77a;border:2px solid #a67c00;box-shadow:inset 0 0 0 2px #fff;user-select:none;touch-action:none}
+  .folder .tab{position:absolute;left:10px;top:-14px;width:42px;height:16px;background:#ffd77a;border:2px solid #a67c00;border-bottom:none;box-shadow:inset 0 0 0 2px #fff}
+  .label{position:absolute;left:50%;top:calc(50% + 60px);transform:translate(-50%,0);background:#fff;border:1px solid #808080;padding:2px 6px;min-width:64px;text-align:center}
+  .label[contenteditable="true"]{outline:2px dashed #000080; background:#ffffe0}
+  .selected{outline:2px solid #000080; outline-offset:-2px}
+
+  /* танцы */
+  @keyframes dance{0%{transform:translate(-50%,-50%) rotate(0deg)}25%{transform:translate(calc(-50% + 6px),calc(-50% - 4px)) rotate(-6deg)}50%{transform:translate(-50%,-50%) rotate(0deg)}75%{transform:translate(calc(-50% - 6px),calc(-50% + 4px)) rotate(6deg)}100%{transform:translate(-50%,-50%) rotate(0deg)}}
+  .dance{animation:dance .6s linear infinite}
+  @keyframes boogie{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.06)}}
+  .boogie{animation:boogie .9s ease-in-out 1}
+
+  /* окна */
+  .modal, .props, .viewer{position:absolute;left:50%;top:30px;transform:translateX(-50%);background:#fff;display:none;z-index:5;
+    border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light);min-width:280px;max-width:90%;box-shadow:0 0 0 1px var(--mid) inset}
+  .mhead{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;color:#fff;background:linear-gradient(#000080,#1084d0)}
+  .mbody{padding:8px}
+  .btn{padding:4px 10px;background:#e9e6df;border:2px solid var(--light);border-right-color:var(--dark);border-bottom-color:var(--dark);cursor:pointer;text-decoration:none;color:inherit}
+  .btn:active{border:2px solid var(--dark);border-right-color:var(--light);border-bottom-color:var(--light)}
+
+  /* контекстное меню — фиксируем ко всему окну */
+  .ctx{
+    position: fixed;            /* раньше было absolute */
+    background:#fff;
+    border:1px solid var(--dark);
+    box-shadow:2px 2px 0 #00000040;
+    display:none;
+    z-index:10
+  }
+  .ctx button{display:block;width:200px;text-align:left;padding:6px 8px;background:#fff;border:none;border-bottom:1px solid #e0e0e0;cursor:pointer}
+  .ctx button:hover{background:#e6f0ff}
+
+  /* всплывашки */
+  .toast{position:absolute;left:8px;bottom:8px;background:#fff;border:1px solid var(--mid);padding:4px 6px;opacity:0;transition:.2s}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title"><b>Пляшущая папка</b></div>
+    <div id="stage" class="stage" tabindex="0" aria-label="Поле с папками">
+      <!-- папки создаются скриптом -->
+      <div id="toast" class="toast">Готово</div>
+    </div>
+  </div>
+
+  <!-- окно: Открыть -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Содержимое папки">
+    <div class="mhead"><span>Содержимое папки</span><button class="btn" data-close="modal">✕</button></div>
+    <div class="mbody">
+      <div style="margin-bottom:8px;color:#333">Папка пустая… но не без характера.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="makeSoul" class="btn">Экспортировать «душу».nfo</button>
+        <button id="openReadme" class="btn">Открыть README.txt</button>
+        <button id="spawnConfetti" class="btn">Немного счастья</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- окно: Свойства -->
+  <div id="props" class="props" role="dialog" aria-modal="true" aria-label="Свойства папки">
+    <div class="mhead"><span>Свойства</span><button class="btn" data-close="props">✕</button></div>
+    <div class="mbody" id="propsBody"></div>
+  </div>
+
+  <!-- окно: Просмотр текста -->
+  <div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Просмотр текста">
+    <div class="mhead"><span id="viewerTitle">README.txt</span><button class="btn" data-close="viewer">✕</button></div>
+    <div class="mbody"><pre id="viewerPre" style="white-space:pre-wrap;margin:0"></pre></div>
+  </div>
+
+  <!-- контекстное меню -->
+  <div id="ctx" class="ctx" role="menu">
+    <button data-act="open">Открыть</button>
+    <button data-act="rename">Переименовать</button>
+    <button data-act="props">Свойства</button>
+    <button data-act="clone">Клон</button>
+    <button data-act="delete">Удалить</button>
+    <button data-act="export">Экспорт «души».nfo</button>
+  </div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const toast = document.getElementById('toast');
+  const modal = document.getElementById('modal');
+  const props = document.getElementById('props');
+  const propsBody = document.getElementById('propsBody');
+  const viewer = document.getElementById('viewer');
+  const viewerTitle = document.getElementById('viewerTitle');
+  const viewerPre = document.getElementById('viewerPre');
+  const ctx = document.getElementById('ctx');
+  const makeSoul = document.getElementById('makeSoul');
+  const openReadme = document.getElementById('openReadme');
+  const spawnConfettiBtn = document.getElementById('spawnConfetti');
+
+  let folders = [];
+  let selectedId = null;
+  let idleTimer = null;
+  const MAX_CLONES = 8;
+
+  // helpers
+  const show = (msg)=>{ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 900); };
+  const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+  const rnd = (a,b)=> a + Math.random()*(b-a);
+  const now = ()=> new Date();
+
+  // folder factory
+  function createFolder({x,y,name,isMain=false}){
+    const id = 'f'+Math.random().toString(36).slice(2,9);
+    const el = document.createElement('div'); el.className='folder';
+    el.style.left = x+'px'; el.style.top = y+'px'; el.style.transform='translate(-50%,-50%)';
+    el.dataset.id = id; el.dataset.name = name; el.dataset.birth = now().toISOString();
+    el.innerHTML = `<div class="tab"></div>`;
+    const label = document.createElement('div'); label.className='label'; label.textContent = name;
+    label.dataset.for = id;
+
+    stage.appendChild(el); stage.appendChild(label);
+
+    const f = { id, el, label, isMain, x, y, vx:0, vy:0 };
+    folders.push(f);
+
+    // interactions
+    makeDraggable(f);
+    hookPointerDance(f);
+    hookCommon(f);
+
+    return f;
+  }
+
+  function center(){ return { x: stage.clientWidth*0.5, y: stage.clientHeight*0.5 }; }
+
+  // init one main folder
+  function init(){
+    const c = center();
+    const main = createFolder({x:c.x, y:c.y, name:'ПАПКА', isMain:true});
+    select(main.id);
+    stage.focus();
+  }
+
+  // drag
+  function makeDraggable(f){
+    let drag=false, ox=0, oy=0;
+
+    f.el.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      select(f.id);
+      drag=true; f.el.setPointerCapture(e.pointerId);
+      const r = f.el.getBoundingClientRect();
+      ox = e.clientX - (r.left + r.width/2);
+      oy = e.clientY - (r.top + r.height/2);
+    });
+    f.el.addEventListener('pointermove', (e)=>{
+      if(!drag) return;
+      const rect = stage.getBoundingClientRect();
+      f.x = clamp(e.clientX - rect.left - ox, 16, rect.width-16);
+      f.y = clamp(e.clientY - rect.top  - oy,  22, rect.height-22);
+      place(f);
+    });
+    window.addEventListener('pointerup', ()=>{ drag=false; });
+
+    // double click -> open
+    f.el.addEventListener('dblclick', ()=> openFolder(f));
+
+    // label click selects
+    f.label.addEventListener('click', ()=> select(f.id));
+  }
+
+  function place(f){
+    f.el.style.left = f.x + 'px';
+    f.el.style.top  = f.y + 'px';
+    f.label.style.left = f.x + 'px';
+    f.label.style.top  = (f.y + 60) + 'px';
+  }
+
+  function select(id){
+    selectedId = id;
+    folders.forEach(ff=>{
+      ff.el.classList.toggle('selected', ff.id===id);
+      ff.label.classList.toggle('selected', ff.id===id);
+    });
+  }
+
+  // pointer proximity -> dance / evade
+  function hookPointerDance(f){
+    stage.addEventListener('pointermove', (e)=>{
+      const rect = stage.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const dx = f.x - mx, dy = f.y - my;
+      const d = Math.hypot(dx,dy);
+
+      // dance when close
+      const el = f.el;
+      if(d < 120){ el.classList.add('dance'); } else { el.classList.remove('dance'); }
+
+      // gentle evade if very close
+      if(d < 70){
+        const k = (70 - d) / 70; // 0..1
+        f.vx += (dx/(d||1)) * 2.2 * k;
+        f.vy += (dy/(d||1)) * 2.2 * k;
+      }
+    }, {passive:true});
+  }
+
+  // common keyboard, context menu, idle boogie
+  function hookCommon(f){
+    // context menu
+    f.el.addEventListener('contextmenu', (e)=> openCtx(e, f));
+    f.label.addEventListener('contextmenu', (e)=> openCtx(e, f));
+
+    // idle boogie
+    resetIdle();
+    ['pointermove','keydown','click'].forEach(ev=>{
+      stage.addEventListener(ev, resetIdle, {passive:true});
+    });
+  }
+
+  function resetIdle(){
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{
+      // pick selected or first
+      const f = folders.find(ff=>ff.id===selectedId) || folders[0];
+      if(!f) return;
+      f.el.classList.add('boogie');
+      setTimeout(()=>f.el.classList.remove('boogie'), 900);
+    }, 3500);
+  }
+
+  // physics loop for gentle inertia
+  function loop(){
+    const padX=16, padY=22, W=stage.clientWidth, H=stage.clientHeight;
+    folders.forEach(f=>{
+      f.vx *= 0.94; f.vy *= 0.94;
+      f.x = clamp(f.x + f.vx, padX, W-padX);
+      f.y = clamp(f.y + f.vy, padY, H-padY);
+      place(f);
+    });
+    requestAnimationFrame(loop);
+  }
+
+  // open/rename/props/clone/delete
+  function openFolder(f){
+    closeAllDialogs();
+    modal.style.display='block';
+    show(`Открыта «${f.label.textContent}»`);
+  }
+
+  function renameFolder(f){
+    const lb = f.label;
+    select(f.id);
+    lb.setAttribute('contenteditable','true'); lb.focus();
+    const sel = window.getSelection(); const range = document.createRange();
+    range.selectNodeContents(lb); sel.removeAllRanges(); sel.addRange(range);
+
+    function end(ok){
+      lb.removeAttribute('contenteditable');
+      if(!lb.textContent.trim()) lb.textContent = f.datasetName || 'ПАПКА';
+      f.el.dataset.name = lb.textContent; f.datasetName = lb.textContent;
+      lb.removeEventListener('blur', onBlur);
+      lb.removeEventListener('keydown', onKey);
+      if(ok) show('Переименовано');
+    }
+    function onBlur(){ end(true); }
+    function onKey(e){
+      if(e.key==='Enter'){ e.preventDefault(); end(true); }
+      if(e.key==='Escape'){ e.preventDefault(); lb.textContent = f.datasetName || 'ПАПКА'; end(false); }
+    }
+    lb.addEventListener('blur', onBlur);
+    lb.addEventListener('keydown', onKey);
+  }
+
+  function propsFolder(f){
+    closeAllDialogs();
+    const created = new Date(f.el.dataset.birth || Date.now());
+    const dancing = f.el.classList.contains('dance') ? 'да' : 'иногда';
+    propsBody.innerHTML = `
+      <div><b>Имя:</b> ${escapeHTML(f.label.textContent)}</div>
+      <div><b>Тип:</b> Папка с настроением</div>
+      <div><b>Размер:</b> 0 байт (наполнена воздухом)</div>
+      <div><b>Создано:</b> ${created.toLocaleString()}</div>
+      <div><b>Текущее состояние:</b> пляшет — ${dancing}</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn" id="propsWiggle">Заставить танцевать</button>
+        <button class="btn" id="propsCenter">Вернуть в центр</button>
+      </div>
+    `;
+    props.style.display='block';
+    document.getElementById('propsWiggle').onclick = ()=>{
+      f.el.classList.add('dance'); setTimeout(()=>f.el.classList.remove('dance'), 900);
+    };
+    document.getElementById('propsCenter').onclick = ()=>{
+      const c = center(); f.x=c.x; f.y=c.y; place(f);
+    };
+  }
+
+  function cloneFolder(f){
+    if(folders.length >= MAX_CLONES){ show('Лимит клонов'); return; }
+    const nf = createFolder({
+      x: clamp(f.x + rnd(-80,80), 24, stage.clientWidth-24),
+      y: clamp(f.y + rnd(-60,60), 24, stage.clientHeight-24),
+      name: f.label.textContent + ' копия'
+    });
+    select(nf.id);
+    show('Скопировано');
+  }
+
+  function deleteFolder(f){
+    if(f.isMain){ show('Главную папку нельзя удалить'); return; }
+    f.el.remove(); f.label.remove();
+    folders = folders.filter(x=>x.id!==f.id);
+    selectedId = folders[0]?.id || null;
+    if(selectedId) select(selectedId);
+    show('Удалено');
+  }
+
+  // ========= контекстное меню: РАНДОМНЫЙ ТЕЛЕПОРТ ПО ОКНУ =========
+  let ctxTarget = null;
+  function openCtx(e, f){
+    e.preventDefault(); select(f.id); ctxTarget = f;
+
+    // Показать, измерить, телепортировать в случайные координаты окна
+    ctx.style.display = 'block';
+    ctx.style.left = '-9999px';  // спрятать на время измерения
+    ctx.style.top  = '-9999px';
+
+    const mw = ctx.offsetWidth  || 200;
+    const mh = ctx.offsetHeight || 160;
+    const W  = window.innerWidth;
+    const H  = window.innerHeight;
+
+    const x = Math.floor(Math.random() * Math.max(0, W - mw - 10));
+    const y = Math.floor(Math.random() * Math.max(0, H - mh - 10));
+
+    ctx.style.left = x + 'px';
+    ctx.style.top  = y + 'px';
+  }
+  function closeCtx(){ ctx.style.display='none'; ctxTarget=null; }
+
+  ctx.addEventListener('click', (e)=>{
+    const act = e.target.getAttribute('data-act'); if(!act || !ctxTarget) return;
+    const f = ctxTarget; closeCtx();
+    if(act==='open')  openFolder(f);
+    if(act==='rename')renameFolder(f);
+    if(act==='props') propsFolder(f);
+    if(act==='clone') cloneFolder(f);
+    if(act==='delete')deleteFolder(f);
+    if(act==='export')exportSoul(f);
+  });
+  stage.addEventListener('click', ()=> closeCtx());
+  window.addEventListener('scroll', ()=> closeCtx());
+  // Закрывать меню кликом в любом месте (кроме самого меню)
+  document.addEventListener('click', (ev)=>{
+    if (ctx.contains(ev.target)) return;
+    closeCtx();
+  });
+
+  // dialogs close buttons
+  document.querySelectorAll('[data-close]').forEach(btn=>{
+    btn.addEventListener('click', ()=> {
+      const id = btn.getAttribute('data-close');
+      document.getElementById(id).style.display='none';
+    });
+  });
+  function closeAllDialogs(){ modal.style.display='none'; props.style.display='none'; viewer.style.display='none'; }
+
+  // keyboard shortcuts
+  stage.addEventListener('keydown', (e)=>{
+    const f = folders.find(x=>x.id===selectedId) || folders[0];
+    if(!f) return;
+    if(e.key==='Enter'){ openFolder(f); }
+    if(e.key==='F2'){ e.preventDefault(); renameFolder(f); }
+    if(e.key==='Delete'){ e.preventDefault(); deleteFolder(f); }
+    const step=6;
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+      if(e.key==='ArrowLeft')  f.x = clamp(f.x-step, 16, stage.clientWidth-16);
+      if(e.key==='ArrowRight') f.x = clamp(f.x+step, 16, stage.clientWidth-16);
+      if(e.key==='ArrowUp')    f.y = clamp(f.y-step, 22, stage.clientHeight-22);
+      if(e.key==='ArrowDown')  f.y = clamp(f.y+step, 22, stage.clientHeight-22);
+      place(f);
+    }
+  });
+
+  // actions inside "open"
+  makeSoul.addEventListener('click', ()=> exportSoul(currFolder()));
+  openReadme.addEventListener('click', ()=>{
+    viewerTitle.textContent = 'README.txt';
+    viewerPre.textContent =
+      'Пляшущая папка (Retro ’98)\n' +
+      '- Наведи курсор — будет танцевать.\n' +
+      '- Двойной клик — открыть. Правый клик — меню.\n' +
+      '- F2 — переименовать, Delete — удалить клон.\n' +
+      '- В свойствах можно «заставить танцевать».\n\n' +
+      'P.S. Папка пуста, но в этом её сила.';
+    viewer.style.display='block';
+  });
+  spawnConfettiBtn.addEventListener('click', ()=> confetti(20));
+
+  function currFolder(){ return folders.find(x=>x.id===selectedId) || folders[0]; }
+
+  // export «души»
+  function exportSoul(f){
+    const txt =
+`*** SOUL.NFO ***
+Имя: ${f.label.textContent}
+Тип: Папка с настроением
+Создано: ${new Date(f.el.dataset.birth).toLocaleString()}
+Содержимое: 0 файлов, 1 настроение
+Комментарий: «Я не пустая, я минималистичная.»`;
+    const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (sanitizeFileName(f.label.textContent) || 'PAPKA') + '_SOUL.nfo';
+    a.click();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 5000);
+    show('Экспорт готов');
+  }
+  function sanitizeFileName(s){ return s.replace(/[\\/:*?"<>|]/g,'_').trim(); }
+
+  // tiny confetti
+  function confetti(n){
+    for(let i=0;i<n;i++){
+      const d=document.createElement('div');
+      d.style.position='absolute';
+      d.style.width=d.style.height= (6+Math.random()*6)+'px';
+      d.style.left = (Math.random()* (stage.clientWidth-20)+10)+'px';
+      d.style.top = '-10px';
+      d.style.background = '#'+Math.floor(Math.random()*0xFFFFFF).toString(16).padStart(6,'0');
+      d.style.opacity='0.9';
+      stage.appendChild(d);
+      const vy = 2+Math.random()*2, vx = -1+Math.random()*2; let rot = (Math.random()*360)|0;
+      let y=-10, x=parseFloat(d.style.left);
+      (function drop(){
+        y+=vy; x+=vx; rot+=6;
+        d.style.top = y+'px'; d.style.left=x+'px'; d.style.transform='rotate('+rot+'deg)';
+        if(y < stage.clientHeight+10) requestAnimationFrame(drop); else d.remove();
+      })();
+    }
+  }
+
+  // escape HTML helper
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+  // close dialogs with ESC
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape'){ closeAllDialogs(); closeCtx(); }
+  });
+
+  // keep labels attached on resize
+  window.addEventListener('resize', ()=> folders.forEach(place));
+
+  // start
+  init();
+  loop();
+
+})();
+</script>
+</body>
+</html>
