@@ -1,189 +1,92 @@
-# Retro’98 Microgames
+# Retro'98 Microgames
 
-Набор вирусных микроигр в эстетике **Windows 98**:  
-**Password Game 98**, **Не нажимать 98**, **Пляшущая папка**, **Глазяка 98**, **Stimulation Clicker 98**.  
-Проект полностью статический: **чистый HTML/CSS/JS, без зависимостей и сборщиков**. Каждая игра — один файл в `game/`. Главная — ретро-окно выбора, игры открываются **в одном окне** (без новых вкладок).
+**Retro'98 Microgames** is a collection of small browser games built in the visual language of Windows 98. The project is fully static and intentionally dependency-free: every game is written with plain HTML, CSS, and JavaScript.
 
----
+The goal is to keep the games easy to open, easy to inspect, and easy to extend, while still showing attention to UI details, local state, accessibility, and browser performance.
 
-## Содержание
-- [Стек и принципы](#стек-и-принципы)
-- [Структура репозитория](#структура-репозитория)
-- [Быстрый старт](#быстрый-старт)
-- [Деплой на GitHub Pages](#деплой-на-github-pages)
-- [Игры (кратко)](#игры-кратко)
-- [Технические детали](#технические-детали)
-  - [Главная страница (одно окно)](#главная-страница-одно-окно)
-  - [Ключи localStorage](#ключи-localstorage)
-  - [Аудио](#аудио)
-  - [Доступность и хоткеи](#доступность-и-хоткеи)
-  - [Производительность и совместимость](#производительность-и-совместимость)
-  - [Безопасность и приватность](#безопасность-и-приватность)
-- [Как добавить новую игру](#как-добавить-новую-игру)
-- [Roadmap](#roadmap)
-- [Лицензия](#лицензия)
-- [Вклад](#вклад)
+## Highlights
 
----
+- Five self-contained microgames in one retro desktop-style launcher.
+- No build step, framework, external assets, CDN, tracking, or backend.
+- Each game lives as an isolated HTML file in `game/`.
+- Local progress is stored only in `localStorage`.
+- Retro UI built with CSS: window chrome, system-like buttons, progress bars, and pixel-style interaction patterns.
+- Keyboard shortcuts, visible focus states, ARIA labels, and clear action feedback.
 
-## Стек и принципы
+## Included games
 
-- **Vanilla**: ES6+, без библиотек/фреймворков.
-- **Ноль ассетов**: нет внешних шрифтов, картинок и CDN — всё генерится кодом.
-- **Ретро-UI**: палитра Win’98, псевдо-3D бордеры, системные шрифты (`"MS Sans Serif"`, Tahoma).
-- **Изоляция игр**: каждая игра — самодостаточный HTML с IIFE-скриптом.
-- **Без бэкенда**: только `localStorage` для сохранений.
+| Game | Description |
+| --- | --- |
+| `Password Game 98` | A rule-based password puzzle with escalating constraints and retro hints. |
+| `Do Not Press 98` | A clicker/troll microgame with moving buttons, clones, overlays, and staged effects. |
+| `Dancing Folder` | A playful cursor-following folder interaction with random window behavior. |
+| `Glazyaka 98` | Canvas-based animated eyes with tracking, blinking, micro-movements, and PNG export. |
+| `Stimulation Clicker 98` | A larger clicker with economy tiers, upgrades, synergies, autosave, offline income, prestige, and achievements. |
 
----
+## Tech stack
 
-## Структура репозитория
+- HTML5
+- CSS3
+- Vanilla JavaScript / ES6+
+- Canvas API for visual effects
+- WebAudio API for generated UI sounds
+- `localStorage` for local-only saves
 
-```
+## Project structure
+
+```text
 .
-├─ index.html                     # ретро-меню выбора (загрузка игр в одном окне)
-├─ /game
-│  ├─ password98.html
-│  ├─ dontpress98.html
-│  ├─ folderdance98.html
-│  ├─ glazyaka98.html
-│  └─ stimulation_clicker98.html
-└─ README.md
+├── index.html
+├── game/
+│   ├── password98.html
+│   ├── dontpress98.html
+│   ├── folderdance98.html
+│   ├── glazyaka98.html
+│   └── stimulation_clicker98.html
+└── README.md
 ```
 
-> Игры живут в `/game/` и грузятся в том же окне (через `<iframe>`).
+## Local development
 
----
-
-## Быстрый старт
-
-Любой статический сервер подойдёт:
+Start any static server from the repository root:
 
 ```bash
-# Python
 python -m http.server 8080
-
-# или через npx
-npx serve .
 ```
 
-Открой `http://localhost:8080`.
+Then open:
 
----
-
-## Деплой на GitHub Pages
-
-1. **Settings → Pages**  
-2. **Build and deployment**: Source = **Deploy from a branch**  
-3. Branch = `main` / Folder = `/ (root)` → **Save**  
-Через минуту-две сайт будет доступен по адресу из Pages.
-
----
-
-## Игры (кратко)
-
-- **Password Game 98** — ступенчатые правила, мемные условия (зебра-буквы, сумма цифр, римские символы и т. п.), ретро-подсказки.
-- **Не нажимать 98** — прогрессирующий троллинг: ускользающая кнопка, клоны, бегущая строка, анти-капча, Boss-key, на 100-м клике «трескается стекло».
-- **Пляшущая папка** — «танцует» вокруг курсора; окно содержимого открывается в случайном месте экрана.
-- **Глазяка 98** — Canvas-глаза: инерционное слежение, дилатация, микросаккады, прищур/мигание, слеза, режим x2 глаз, CRT-сканлайны; кнопка «Фото (PNG)».
-- **Stimulation Clicker 98** — кликер с продуманной экономикой (6 тиров, 18 предметов, синергии, мягкие «кепы»), авто-сейв, офлайн-доход, престиж, ачивки.
-
----
-
-## Технические детали
-
-### Главная страница (одно окно)
-
-Простой лоадер через `<iframe>`:
-
-```html
-<!-- index.html (фрагмент) -->
-<iframe id="screen" src="game/password98.html" style="width:100%;height:520px;border:0"></iframe>
-<nav>
-  <button data-game="password98.html">Password</button>
-  <button data-game="dontpress98.html">Не нажимать</button>
-  <button data-game="folderdance98.html">Папка</button>
-  <button data-game="glazyaka98.html">Глазяка</button>
-  <button data-game="stimulation_clicker98.html">Clicker</button>
-</nav>
-<script>
-  document.querySelectorAll('nav [data-game]').forEach(b=>{
-    b.onclick = () => document.getElementById('screen').src = 'game/' + b.dataset.game;
-  });
-</script>
+```text
+http://localhost:8080
 ```
 
-> Можно заменить на `<object>` или `srcdoc`, но `<iframe>` — самый простой и совместимый вариант.
+The project can also be deployed to any static host, including GitHub Pages.
 
-### Ключи `localStorage`
+## Architecture notes
 
-- `dontpress98_best` — рекорд кликов.  
-- `glazyaka98_cfg_v1` — тогглы (микросаккады/дилатация/застенчивость).  
-- `stim_clicker98_pro_v3` — состояние кликера (баланс, инвентарь, престиж, ачивки).  
-- Остальные игры работают без сохранений.
+- The main page loads games inside the same browser window through an iframe-based launcher.
+- Each game is designed as a standalone file with isolated logic.
+- UI sounds are generated in the browser and start only after user interaction.
+- Saves stay on the user's device and are never sent to a server.
+- The project avoids external resources so it can be reviewed and hosted easily.
 
-### Аудио
+## Privacy and security
 
-- WebAudio/`OscillatorNode` для бипов, **без внешних файлов**.  
-- Активация после первого пользовательского жеста (клик/Space).  
-- Переключатель «Звук: вкл/выкл» в UI.
-
-### Доступность и хоткеи
-
-- Горячие клавиши:
-  - **Space** — основной клик/действие (Clicker).
-  - **B** — Boss-overlay (там, где предусмотрено).
-  - **Esc** — «Паника» (чистка визуалок в Clicker).
-- Контраст и фокус-стили соответствуют теме ’98, добавлены ARIA-лейблы ключевых элементов.
-
-### Производительность и совместимость
-
-- 60 fps на современных браузерах; анимации — CSS/JS, без тяжёлых таймеров.  
-- Поддержка: Chrome/Edge/Firefox/Safari (ES6+). IE не поддерживается.
-
-### Безопасность и приватность
-
-- Нет сетевых запросов, аналитики и сторонних скриптов.  
-- `localStorage` хранит только локальный прогресс.  
-- Clipboard API используется только по явной кнопке («Скопировать»).
-
----
-
-## Как добавить новую игру
-
-1. Создай файл `game/yourgame.html` (самодостаточный HTML).  
-2. Оберни логику в IIFE, не оставляй глобальных переменных.  
-3. Используй ретро-переменные CSS:
-   ```css
-   :root{
-     --bg:#c0c0c0; --win:#d4d0c8; --dark:#404040;
-     --mid:#808080; --light:#fff; --text:#111;
-   }
-   ```
-4. Добавь кнопку выбора в `index.html` (см. пример с iframe).  
-5. Для сохранений используй уникальный ключ, например `yourgame_v1`.
-
----
+- No analytics.
+- No third-party scripts.
+- No network requests from gameplay.
+- No account system.
+- No server-side storage.
+- Clipboard access is used only after explicit user action.
 
 ## Roadmap
 
-- Таблица достижений/статистика на главной.
-- «Дерево исследований» для Clicker (пермы за медали).
-- Спарклайн дохода (Canvas, последние 60 секунд).
-- Мини-набор ретро-компонентов (окно, кнопка, прогресс-бар) для переиспользования.
+- Add a shared retro UI component layer.
+- Add a small test/smoke-check script for static files.
+- Improve mobile layout for small screens.
+- Add a high-score/statistics panel to the launcher.
+- Document extension rules for adding new microgames.
 
----
+## License
 
-## Лицензия
-
-Рекомендуется **MIT** (свободное использование с указанием авторства).  
-Добавь файл `LICENSE`, если нужна другая лицензия.
-
----
-
-## Вклад
-
-PR приветствуются: новые мини-игры, баланс, UI/аудио.  
-Стиль коммитов: `type(scope): summary`  
-пример: `feat(clicker): add T6 upgrades`.
-
----
+MIT
