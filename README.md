@@ -40,9 +40,9 @@ The goal is to keep the games easy to open, easy to inspect, and easy to extend,
 ├── game/
 │   ├── password98.html
 │   ├── dontpress98.html
-│   ├── folderdance98.html
-│   ├── glazyaka98.html
-│   └── stimulation_clicker98.html
+│   ├── dancingfolder98.html
+│   ├── eye98.html
+│   └── stimclicker98.html
 └── README.md
 ```
 
