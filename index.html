@@ -17,9 +17,10 @@
   /* left menu */
   .sidebar{border-right:1px solid var(--mid);background:#efefef;min-height:540px}
   .list{padding:6px}
-  .item{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--mid);background:#f6f4ef;margin-bottom:6px;cursor:pointer;
-        box-shadow:inset -1px -1px 0 var(--light), inset 1px 1px 0 var(--dark)}
+  .item{display:flex;align-items:center;gap:8px;width:100%;padding:6px;border:1px solid var(--mid);background:#f6f4ef;margin-bottom:6px;cursor:pointer;
+        color:inherit;font:inherit;text-align:left;box-shadow:inset -1px -1px 0 var(--light), inset 1px 1px 0 var(--dark)}
   .item:hover{background:#fff}
+  .item:focus-visible{outline:2px solid #000;outline-offset:2px}
   .item.active{outline:2px solid #000080;outline-offset:-2px}
   /* right viewer */
   .viewer{position:relative;min-height:540px;background:#f3f1ec}
@@ -73,17 +74,23 @@
   function renderList(){
     list.innerHTML='';
     games.forEach((g,i)=>{
-      const el = document.createElement('div');
+      const el = document.createElement('button');
+      el.type = 'button';
       el.className = 'item' + (i===0?' active':'');
-      el.innerHTML = `<span>📝</span><div><b>${g.title}</b><div style="color:#333">${g.desc}</div></div>`;
+      el.setAttribute('aria-pressed', i===0 ? 'true' : 'false');
+      el.innerHTML = `<span aria-hidden="true">📝</span><div><b>${g.title}</b><div style="color:#333">${g.desc}</div></div>`;
       el.onclick = ()=>load(i, el);
       list.appendChild(el);
     });
   }
 
   function load(i, el){
-    [...list.children].forEach(n=>n.classList.remove('active'));
+    [...list.children].forEach(n=>{
+      n.classList.remove('active');
+      n.setAttribute('aria-pressed', 'false');
+    });
     el.classList.add('active');
+    el.setAttribute('aria-pressed', 'true');
     frame.src = games[i].file;
     status.textContent = 'Открыто: ' + games[i].title;
   }
