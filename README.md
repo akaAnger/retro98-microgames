@@ -1,5 +1,7 @@
 # Retro'98 Microgames
 
+[![Static checks](https://github.com/akaAnger/retro98-microgames/actions/workflows/static-checks.yml/badge.svg)](https://github.com/akaAnger/retro98-microgames/actions/workflows/static-checks.yml)
+
 **Retro'98 Microgames** is a collection of small browser games built in the visual language of Windows 98. The project is fully static and intentionally dependency-free: every game is written with plain HTML, CSS, and JavaScript.
 
 The goal is to keep the games easy to open, easy to inspect, and easy to extend, while still showing attention to UI details, local state, accessibility, and browser performance.
@@ -40,9 +42,11 @@ The goal is to keep the games easy to open, easy to inspect, and easy to extend,
 ├── game/
 │   ├── password98.html
 │   ├── dontpress98.html
-│   ├── folderdance98.html
-│   ├── glazyaka98.html
-│   └── stimulation_clicker98.html
+│   ├── dancingfolder98.html
+│   ├── eye98.html
+│   └── stimclicker98.html
+├── tests/
+│   └── test_static.py
 └── README.md
 ```
 
@@ -61,6 +65,14 @@ http://localhost:8080
 ```
 
 The project can also be deployed to any static host, including GitHub Pages.
+
+Run the dependency-free smoke checks before changing launcher entries or game files:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The checks verify that every launcher target exists and that all HTML entry points contain a doctype, title, and viewport metadata. GitHub Actions runs them for every pull request and push to `main`.
 
 ## Architecture notes
 
@@ -82,7 +94,6 @@ The project can also be deployed to any static host, including GitHub Pages.
 ## Roadmap
 
 - Add a shared retro UI component layer.
-- Add a small test/smoke-check script for static files.
 - Improve mobile layout for small screens.
 - Add a high-score/statistics panel to the launcher.
 - Document extension rules for adding new microgames.
