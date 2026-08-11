@@ -20,6 +20,20 @@ class StaticSiteSmokeTest(unittest.TestCase):
                 path = ROOT / relative_path
                 self.assertTrue(path.is_file(), f"Launcher target does not exist: {relative_path}")
 
+    def test_launcher_exposes_every_game_html_file(self):
+        index = (ROOT / "index.html").read_text(encoding="utf-8")
+        launcher_paths = set(LAUNCHER_ENTRY.findall(index))
+        game_files = {
+            path.relative_to(ROOT).as_posix()
+            for path in (ROOT / "game").glob("*.html")
+        }
+
+        self.assertSetEqual(
+            launcher_paths,
+            game_files,
+            "Every game HTML file should be reachable from the launcher and no launcher entry should point outside game/",
+        )
+
     def test_all_html_entries_have_basic_document_metadata(self):
         html_paths = [ROOT / "index.html", *(ROOT / "game").glob("*.html")]
 
