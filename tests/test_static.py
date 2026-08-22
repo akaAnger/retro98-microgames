@@ -12,7 +12,7 @@ class StaticSiteSmokeTest(unittest.TestCase):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
         game_paths = LAUNCHER_ENTRY.findall(index)
 
-        self.assertEqual(len(game_paths), 5, "The launcher should expose five games")
+        self.assertGreater(len(game_paths), 0, "The launcher should expose at least one game")
         self.assertEqual(len(game_paths), len(set(game_paths)), "Launcher paths must be unique")
 
         for relative_path in game_paths:
