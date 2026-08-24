@@ -43,6 +43,8 @@ class StaticSiteSmokeTest(unittest.TestCase):
             with self.subTest(path=path.relative_to(ROOT)):
                 document = path.read_text(encoding="utf-8")
                 self.assertRegex(document, r"(?i)^\s*<!doctype\s+html>")
+                self.assertRegex(document, r'(?is)<html\s+[^>]*lang=["\']ru["\']')
+                self.assertRegex(document, r'(?is)<meta\s+charset=["\']utf-8["\']')
                 self.assertRegex(document, r"(?is)<title>\s*[^<]+\s*</title>")
                 self.assertRegex(document, r'(?is)<meta\s+name=["\']viewport["\']')
 
