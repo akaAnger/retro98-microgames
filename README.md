@@ -73,7 +73,7 @@ Run the dependency-free smoke checks before changing launcher entries or game fi
 python -m unittest discover -s tests -v
 ```
 
-The checks verify that every launcher target exists and that all HTML entry points contain a doctype, title, and viewport metadata. GitHub Actions runs them for every pull request and push to `main`.
+The checks verify that every launcher target exists, all HTML entry points contain the required document metadata, and the launcher keeps its small-screen responsive layout. GitHub Actions runs them for every pull request and push to `main`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the extension rules, accessibility expectations, storage isolation, and browser checks for new microgames.
 
@@ -97,7 +97,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the extension rules, accessibility ex
 ## Roadmap
 
 - Add a shared retro UI component layer.
-- Improve mobile layout for small screens.
 - Add a high-score/statistics panel to the launcher.
 
 ## License

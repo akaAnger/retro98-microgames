@@ -48,6 +48,14 @@ class StaticSiteSmokeTest(unittest.TestCase):
                 self.assertRegex(document, r"(?is)<title>\s*[^<]+\s*</title>")
                 self.assertRegex(document, r'(?is)<meta\s+name=["\']viewport["\']')
 
+    def test_launcher_has_small_screen_layout(self):
+        index = (ROOT / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("@media (max-width:700px)", index)
+        self.assertRegex(index, r"\.layout\s*\{grid-template-columns:1fr\}")
+        self.assertRegex(index, r"\.frameWrap\s*\{height:70vh;min-height:480px\}")
+        self.assertIn("@media (max-width:420px)", index)
+
 
 if __name__ == "__main__":
     unittest.main()
