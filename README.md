@@ -8,7 +8,7 @@ The goal is to keep the games easy to open, easy to inspect, and easy to extend,
 
 ## Highlights
 
-- Five self-contained microgames in one retro desktop-style launcher.
+- A growing set of self-contained microgames in one retro desktop-style launcher.
 - No build step, framework, external assets, CDN, tracking, or backend.
 - Each game lives as an isolated HTML file in `game/`.
 - Local progress is stored only in `localStorage`.
