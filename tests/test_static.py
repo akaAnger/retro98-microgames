@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER_ENTRY = re.compile(r"file\s*:\s*['\"]([^'\"]+)['\"]")
+EXTERNAL_URL = re.compile(r"(?i)(?:https?:)?//[^\s'\"<>]+")
 
 
 class StaticSiteSmokeTest(unittest.TestCase):
@@ -47,6 +48,19 @@ class StaticSiteSmokeTest(unittest.TestCase):
                 self.assertRegex(document, r'(?is)<meta\s+charset=["\']utf-8["\']')
                 self.assertRegex(document, r"(?is)<title>\s*[^<]+\s*</title>")
                 self.assertRegex(document, r'(?is)<meta\s+name=["\']viewport["\']')
+
+    def test_html_entries_do_not_reference_external_urls(self):
+        html_paths = [ROOT / "index.html", *(ROOT / "game").glob("*.html")]
+
+        for path in html_paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                document = path.read_text(encoding="utf-8")
+                external_urls = EXTERNAL_URL.findall(document)
+                self.assertEqual(
+                    external_urls,
+                    [],
+                    f"External URL found in {path.relative_to(ROOT)}: {external_urls}",
+                )
 
     def test_launcher_has_small_screen_layout(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
