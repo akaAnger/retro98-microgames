@@ -5,6 +5,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER_ENTRY = re.compile(r"file\s*:\s*['\"]([^'\"]+)['\"]")
+REMOTE_RESOURCE = re.compile(
+    r"(?is)(?:"
+    r"<(?:script|img|iframe|audio|video|source|link)\b[^>]*(?:src|href)\s*=\s*['\"]https?://"
+    r"|url\(\s*['\"]?https?://"
+    r"|fetch\(\s*['\"]https?://"
+    r"|new\s+WebSocket\(\s*['\"]wss?://"
+    r")"
+)
 
 
 class StaticSiteSmokeTest(unittest.TestCase):
@@ -47,6 +55,17 @@ class StaticSiteSmokeTest(unittest.TestCase):
                 self.assertRegex(document, r'(?is)<meta\s+charset=["\']utf-8["\']')
                 self.assertRegex(document, r"(?is)<title>\s*[^<]+\s*</title>")
                 self.assertRegex(document, r'(?is)<meta\s+name=["\']viewport["\']')
+
+    def test_html_entries_do_not_load_remote_resources(self):
+        html_paths = [ROOT / "index.html", *(ROOT / "game").glob("*.html")]
+
+        for path in html_paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                document = path.read_text(encoding="utf-8")
+                self.assertIsNone(
+                    REMOTE_RESOURCE.search(document),
+                    f"Remote resource loading found in {path.relative_to(ROOT)}",
+                )
 
     def test_launcher_has_small_screen_layout(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
