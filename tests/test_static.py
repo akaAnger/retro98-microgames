@@ -11,6 +11,9 @@ REMOTE_RESOURCE = re.compile(
     r"|url\(\s*['\"]?https?://"
     r"|fetch\(\s*['\"]https?://"
     r"|new\s+WebSocket\(\s*['\"]wss?://"
+    r"|new\s+EventSource\s*\("
+    r"|new\s+XMLHttpRequest\s*\("
+    r"|navigator\.sendBeacon\s*\("
     r")"
 )
 
