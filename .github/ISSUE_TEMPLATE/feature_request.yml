@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a focused improvement for the launcher or a microgame
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where would this improvement apply?
+      options:
+        - Launcher / game selection
+        - Dancing Folder 98
+        - Don't Press 98
+        - Eye 98
+        - Password 98
+        - Stim Clicker 98
+        - Repository / contributor experience
+        - New microgame idea
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What limitation, friction, or missing experience would this address?
+      placeholder: Describe the user-facing reason for the change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful version of the improvement.
+      placeholder: Explain the behavior you would like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Note workarounds or simpler approaches you considered.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find the same request.
+          required: true
+        - label: This request keeps the project dependency-free and playable as static files, or explains why an exception is necessary.
+          required: true
