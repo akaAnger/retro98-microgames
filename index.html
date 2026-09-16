@@ -71,7 +71,7 @@
       </section>
     </div>
     <div class="status">
-      <div>© 1998…2025 «Это не продакт, это настроение»</div>
+      <div>© 1998…<span id="currentYear">2025</span> «Это не продакт, это настроение»</div>
       <div id="status">Готов</div>
     </div>
   </div>
@@ -88,6 +88,8 @@
   const list = document.getElementById('list');
   const frame = document.getElementById('frame');
   const status = document.getElementById('status');
+  const currentYear = document.getElementById('currentYear');
+  currentYear.textContent = new Date().getFullYear();
 
   function renderList(){
     list.innerHTML='';
