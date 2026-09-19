@@ -9,6 +9,7 @@ REMOTE_RESOURCE = re.compile(
     r"(?is)(?:"
     r"<(?:script|img|iframe|audio|video|source|link)\b[^>]*(?:src|href)\s*=\s*['\"]https?://"
     r"|url\(\s*['\"]?https?://"
+    r"|@import\s+(?:url\(\s*)?['\"]?https?://"
     r"|fetch\(\s*['\"]https?://"
     r"|new\s+WebSocket\(\s*['\"]wss?://"
     r"|new\s+EventSource\s*\("
