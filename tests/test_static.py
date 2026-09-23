@@ -5,13 +5,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER_ENTRY = re.compile(r"file\s*:\s*['\"]([^'\"]+)['\"]")
+REMOTE_URL = r"(?:https?:)?//"
 REMOTE_RESOURCE = re.compile(
-    r"(?is)(?:"
-    r"<(?:script|img|iframe|audio|video|source|link)\b[^>]*(?:src|href)\s*=\s*['\"]https?://"
-    r"|url\(\s*['\"]?https?://"
-    r"|@import\s+(?:url\(\s*)?['\"]?https?://"
-    r"|fetch\(\s*['\"]https?://"
-    r"|new\s+WebSocket\(\s*['\"]wss?://"
+    rf"(?is)(?:"
+    rf"<(?:script|img|iframe|audio|video|source|link)\b[^>]*(?:src|href)\s*=\s*['\"]{REMOTE_URL}"
+    rf"|url\(\s*['\"]?{REMOTE_URL}"
+    rf"|@import\s+(?:url\(\s*)?['\"]?{REMOTE_URL}"
+    rf"|fetch\(\s*['\"]{REMOTE_URL}"
+    rf"|new\s+WebSocket\(\s*['\"](?:wss?:)?//"
     r"|new\s+EventSource\s*\("
     r"|new\s+XMLHttpRequest\s*\("
     r"|navigator\.sendBeacon\s*\("
