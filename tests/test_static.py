@@ -8,7 +8,9 @@ LAUNCHER_ENTRY = re.compile(r"file\s*:\s*['\"]([^'\"]+)['\"]")
 REMOTE_URL = r"(?:https?:)?//"
 REMOTE_RESOURCE = re.compile(
     rf"(?is)(?:"
-    rf"<(?:script|img|iframe|audio|video|source|link)\b[^>]*(?:src|href)\s*=\s*['\"]{REMOTE_URL}"
+    rf"<(?:script|img|iframe|audio|video|source|link|embed)\b[^>]*(?:src|href)\s*=\s*['\"]{REMOTE_URL}"
+    rf"|<object\b[^>]*data\s*=\s*['\"]{REMOTE_URL}"
+    rf"|<video\b[^>]*poster\s*=\s*['\"]{REMOTE_URL}"
     rf"|url\(\s*['\"]?{REMOTE_URL}"
     rf"|@import\s+(?:url\(\s*)?['\"]?{REMOTE_URL}"
     rf"|fetch\(\s*['\"]{REMOTE_URL}"
