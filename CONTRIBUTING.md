@@ -25,7 +25,7 @@ Run the dependency-free smoke checks from the repository root:
 python -m unittest discover -s tests -v
 ```
 
-The checks ensure that launcher entries are unique, every launcher target exists, every `game/*.html` file is represented in the launcher, and HTML entry points keep required document metadata.
+The checks ensure that launcher entries are unique, every launcher target exists, every `game/*.html` file is represented in the launcher, HTML entry points keep required document metadata, remote runtime resources stay blocked, and the launcher keeps its small-screen layout.
 
 For gameplay changes, also serve the repository locally:
 
